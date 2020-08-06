@@ -27,22 +27,35 @@ def to_hours(v):
     h, m, s = [int(x) for x in v.split(':')]
     return h + m / 60 + s / 3600
 
+def to_g(v):
+  if v.endswith('K'):
+    return float(v[:-1]) / 1024 / 1024
+  elif v.endswith('M'):
+    return float(v[:-1]) / 1024
+  elif v.endswith('Mn'):
+    return float(v[:-2]) / 1024
+  elif v.endswith('Gn'):
+    return float(v[:-2])
+  else:
+    logging.warn('tricky memory value: %s', v)
+    return float(v)
+
 def main(files):
   logging.info('starting...')
 
-  sys.stdout.write('ID,Name,TimeRequested,TimeUsed,MemoryRequested,MemoryUsed\n')
+  sys.stdout.write('ID,Name,TimeRequested,TimeUsed,MemoryRequested,MemoryUsed,TimeDiff,MemoryDiff\n')
   for f in files:
     logging.info('%s...', f)
     i = f.split('/')[-1].split('.')[0].split('-')[-1]
-    output = subprocess.check_output("sacct -j {} -p --format JobName,Elapsed,MaxRSS,MaxVMSize,TimeLimit".format(i), shell=True).decode()
+    output = subprocess.check_output("sacct -j {} -p --format JobName,Elapsed,MaxRSS,ReqMem,TimeLimit".format(i), shell=True).decode()
     lines = output.split('\n')
     jobname = lines[1].split('|')[0]
     time_requested = to_hours(lines[1].split('|')[4])
     time_used = to_hours(lines[2].split('|')[1])
-    memory_used = float(lines[2].split('|')[2][:-1]) / 1024 / 1024
-    memory_requested = float(lines[2].split('|')[3][:-1]) / 1024 / 1024
+    memory_used = to_g(lines[2].split('|')[2])
+    memory_requested = to_g(lines[2].split('|')[3]) 
 
-    sys.stdout.write('{},{},{:.1f},{:.1f},{:.1f},{:.1f}\n'.format(i, jobname, time_requested, time_used, memory_requested, memory_used))
+    sys.stdout.write('{},{},{:.1f},{:.1f},{:.1f},{:.1f},{:.1f},{:.1f}\n'.format(i, jobname, time_requested, time_used, memory_requested, memory_used, time_requested - time_used, memory_requested - memory_used))
 
   logging.info('done')
 
