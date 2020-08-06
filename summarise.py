@@ -40,7 +40,7 @@ def to_g(v):
     logging.warn('tricky memory value: %s', v)
     return float(v)
 
-def main(files):
+def main(files, filter_name):
   logging.info('starting...')
 
   sys.stdout.write('ID,Name,TimeRequested,TimeUsed,MemoryRequested,MemoryUsed,TimeDiff,MemoryDiff\n')
@@ -55,6 +55,10 @@ def main(files):
     memory_used = to_g(lines[2].split('|')[2])
     memory_requested = to_g(lines[2].split('|')[3]) 
 
+    if filter_name == 'snakemake':
+      jobname = '-'.join(jobname.split('-')[-2:-1])
+      logging.debug('new jobname is %s', jobname)
+
     sys.stdout.write('{},{},{:.1f},{:.1f},{:.1f},{:.1f},{:.1f},{:.1f}\n'.format(i, jobname, time_requested, time_used, memory_requested, memory_used, time_requested - time_used, memory_requested - memory_used))
 
   logging.info('done')
@@ -62,6 +66,7 @@ def main(files):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Slurm summariser')
   parser.add_argument('--files', required=True, nargs='+', help='files containing slurm ids')
+  parser.add_argument('--filter_name', required=False, help='filter names in snakemake format *-name-*')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -69,5 +74,5 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.files)
+  main(args.files, args.filter_name)
 
